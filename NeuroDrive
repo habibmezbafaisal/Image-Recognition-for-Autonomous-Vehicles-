@@ -1,0 +1,36 @@
+# Import necessary libraries
+import tensorflow as tf
+from tensorflow.keras import layers, models
+from tensorflow.keras.datasets import cifar100
+from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.applications import ResNet50
+from tensorflow.keras.optimizers import Adam
+
+# Load and preprocess the CIFAR-100 dataset
+(train_images, train_labels), (test_images, test_labels) = cifar100.load_data()
+train_images, test_images = train_images / 255.0, test_images / 255.0  # Normalize pixel values to be between 0 and 1
+train_labels, test_labels = to_categorical(train_labels, num_classes=100), to_categorical(test_labels, num_classes=100)
+
+# Use ResNet50 as a base model
+base_model = ResNet50(weights='imagenet', include_top=False, input_shape=(32, 32, 3))
+
+# Build a more complex model on top of ResNet50
+model = models.Sequential()
+model.add(base_model)
+model.add(layers.GlobalAveragePooling2D())
+model.add(layers.Dense(512, activation='relu'))
+model.add(layers.Dropout(0.5))
+model.add(layers.Dense(100, activation='softmax'))  # CIFAR-100 has 100 classes
+
+# Compile the model
+model.compile(optimizer=Adam(learning_rate=1e-4), loss='categorical_crossentropy', metrics=['accuracy'])
+
+# Train the model
+model.fit(train_images, train_labels, epochs=20, validation_data=(test_images, test_labels))
+
+# Evaluate the model on the test set
+test_loss, test_acc = model.evaluate(test_images, test_labels)
+print(f'Test accuracy: {test_acc}')
+
+# Save the model
+model.save('complex_image_recognition_model.h5')
